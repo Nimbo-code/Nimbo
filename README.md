@@ -1,287 +1,305 @@
-# Nimbo
+<p align="center">
+  <img src="assets/nimbo_main_logo.png" alt="Nimbo Logo" width="300"/>
+</p>
 
-A modern, feature-rich Python framework for fine-tuning language models with LoRA adapters.
+<h3 align="center">
+  Fine-tune LLMs with LoRA — Simple, Fast, Memory-Efficient
+</h3>
 
-Nimbo is a comprehensive rewrite of SmoLoRA with all identified improvements implemented:
+<p align="center">
+  <a href="https://github.com/crinex/Nimbo/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"/>
+  </a>
+  <a href="https://www.python.org/downloads/">
+    <img src="https://img.shields.io/badge/Python-3.9+-green.svg" alt="Python"/>
+  </a>
+  <a href="https://pytorch.org/">
+    <img src="https://img.shields.io/badge/PyTorch-2.0+-red.svg" alt="PyTorch"/>
+  </a>
+  <a href="https://huggingface.co/">
+    <img src="https://img.shields.io/badge/🤗-Transformers-yellow.svg" alt="HuggingFace"/>
+  </a>
+</p>
 
-- **Priority 1**: CUDA/MPS/CPU auto-detection, `torch.no_grad()`, `use_cache`, fp16/bf16 support
-- **Priority 2**: Configuration dataclasses, validation split, callbacks, logging, adapter-only inference
-- **Priority 3**: Auto target_modules detection, batch inference, streaming, config files
-- **Priority 4**: Gradient checkpointing, Flash Attention 2, torch.compile, QLoRA
+<p align="center">
+  <b>QLoRA</b> • <b>Flash Attention 2</b> • <b>Auto Device Detection</b> • <b>Streaming Inference</b>
+</p>
 
-## Installation
+---
+
+## ⚡ Why Nimbo?
+
+| Feature | Nimbo | Others |
+|---------|:-----:|:------:|
+| 🚀 CUDA/MPS/CPU Auto-Detection | ✅ | ❌ |
+| 🎯 Auto LoRA Target Modules | ✅ | ❌ |
+| 📊 QLoRA (4-bit/8-bit) | ✅ | ✅ |
+| ⚡ Flash Attention 2 | ✅ | ✅ |
+| 🔄 Batch & Streaming Inference | ✅ | ❌ |
+| 📁 YAML/JSON Config Files | ✅ | ❌ |
+| 🛑 Early Stopping & Callbacks | ✅ | Manual |
+| 🧠 Gradient Checkpointing | ✅ | ✅ |
+| 🎨 4-Method Simple API | ✅ | ❌ |
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-# Clone and install
-git clone https://github.com/username/nimbo.git
-cd nimbo
-pip install -e .
-
-# With optional dependencies
-pip install -e ".[all]"     # Full installation
-pip install -e ".[qlora]"   # QLoRA support
-pip install -e ".[flash]"   # Flash Attention
-pip install -e ".[dev]"     # Development tools
+pip install git+https://github.com/crinex/Nimbo.git
 ```
-
-## Quick Start
 
 ```python
 from nimbo import Nimbo
 
-# Initialize with auto-detected settings
+# That's it! Auto-detects device, precision, and LoRA targets
 trainer = Nimbo(
     base_model_name="microsoft/phi-2",
     dataset="yelp_review_full",
-    text_field="text",
     output_dir="./output",
 )
 
-# Train
-trainer.train()
+trainer.train()      # Fine-tune with LoRA
+trainer.save()       # Merge & save model
 
-# Save merged model
-trainer.save()
-
-# Run inference
+# Inference
 trainer.load_model("./output/final_merged")
-result = trainer.inference("Write a review:")
-print(result)
+print(trainer.inference("Write a review:"))
 ```
 
-## Features
+---
 
-### Configuration Dataclasses
+## 📦 Installation
 
-Full control over every aspect of training and inference:
+<details>
+<summary><b>🐧 Linux / WSL</b></summary>
 
-```python
-from nimbo import (
-    Nimbo,
-    LoRAConfig,
-    TrainingConfig,
-    InferenceConfig,
-    QuantizationConfig,
-)
+```bash
+# Basic installation
+pip install git+https://github.com/crinex/Nimbo.git
 
-lora_config = LoRAConfig(
-    r=16,
-    lora_alpha=32,
-    lora_dropout=0.05,
-    # target_modules auto-detected based on model architecture
-)
+# With QLoRA support
+pip install git+https://github.com/crinex/Nimbo.git
+pip install bitsandbytes
 
-training_config = TrainingConfig(
-    learning_rate=1e-4,
-    num_train_epochs=3,
-    gradient_checkpointing=True,
-    early_stopping_patience=3,
-)
-
-trainer = Nimbo(
-    base_model_name="microsoft/phi-2",
-    dataset="your_dataset",
-    lora_config=lora_config,
-    training_config=training_config,
-)
+# Full installation (all features)
+pip install "nimbo[all] @ git+https://github.com/crinex/Nimbo.git"
 ```
 
-### QLoRA for Memory Efficiency
+</details>
 
-Train larger models with 4-bit quantization:
+<details>
+<summary><b>🍎 macOS (Apple Silicon)</b></summary>
+
+```bash
+pip install git+https://github.com/crinex/Nimbo.git
+# MPS backend auto-detected!
+```
+
+</details>
+
+<details>
+<summary><b>🐳 From Source</b></summary>
+
+```bash
+git clone https://github.com/crinex/Nimbo.git
+cd Nimbo
+pip install -e ".[dev]"
+```
+
+</details>
+
+---
+
+## 🎯 Supported Models
+
+Nimbo **auto-detects** the optimal LoRA target modules for each architecture:
+
+| Architecture | Models | Target Modules |
+|--------------|--------|----------------|
+| **LLaMA** | LLaMA, LLaMA 2/3, Code Llama | `q_proj`, `k_proj`, `v_proj`, `o_proj` |
+| **Mistral** | Mistral, Mixtral | `q_proj`, `k_proj`, `v_proj`, `o_proj` |
+| **Phi** | Phi-1, Phi-1.5, Phi-2, Phi-3 | `q_proj`, `k_proj`, `v_proj`, `dense` |
+| **Qwen** | Qwen, Qwen2 | `c_attn`, `c_proj` |
+| **Gemma** | Gemma, Gemma 2 | `q_proj`, `k_proj`, `v_proj`, `o_proj` |
+| **GPT-2** | GPT-2, DistilGPT-2 | `c_attn`, `c_proj` |
+| **Falcon** | Falcon-7B/40B | `query_key_value`, `dense` |
+| **BLOOM** | BLOOM, BLOOMZ | `query_key_value`, `dense` |
+
+---
+
+## 💡 Examples
+
+<details>
+<summary><b>🔧 Custom Configuration</b></summary>
 
 ```python
-from nimbo import Nimbo, QuantizationConfig
-
-quant_config = QuantizationConfig(
-    load_in_4bit=True,
-    bnb_4bit_compute_dtype="bfloat16",
-    bnb_4bit_quant_type="nf4",
-)
+from nimbo import Nimbo, LoRAConfig, TrainingConfig
 
 trainer = Nimbo(
     base_model_name="mistralai/Mistral-7B-v0.1",
     dataset="your_dataset",
-    quantization_config=quant_config,
+    lora_config=LoRAConfig(
+        r=16,
+        lora_alpha=32,
+        lora_dropout=0.05,
+    ),
+    training_config=TrainingConfig(
+        learning_rate=1e-4,
+        num_train_epochs=3,
+        gradient_checkpointing=True,
+        early_stopping_patience=3,
+    ),
+    use_flash_attention=True,
 )
 ```
 
-### Independent Inference
+</details>
 
-Standalone inference without trainer:
+<details>
+<summary><b>🗜️ QLoRA (4-bit Training)</b></summary>
 
 ```python
-from nimbo import NimboInference, load_for_inference
+from nimbo import Nimbo, QuantizationConfig
 
-# Quick loading
-model = load_for_inference(
-    model_path="./output/final_merged",
-    quantize="4bit",
+trainer = Nimbo(
+    base_model_name="meta-llama/Llama-2-7b-hf",
+    dataset="your_dataset",
+    quantization_config=QuantizationConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype="bfloat16",
+        bnb_4bit_quant_type="nf4",
+    ),
 )
+# Train 7B model on consumer GPU!
+```
 
-# Single prompt
-result = model.generate("Hello, world!")
+</details>
 
-# Batch inference
-results = model.generate(["Prompt 1", "Prompt 2", "Prompt 3"])
+<details>
+<summary><b>🌊 Streaming Inference</b></summary>
 
-# Streaming
+```python
+from nimbo import NimboInference
+
+model = NimboInference("./output/final_merged")
+
+# Stream tokens as they're generated
 for chunk in model.stream("Once upon a time"):
     print(chunk, end="", flush=True)
+```
 
-# Chat
+</details>
+
+<details>
+<summary><b>📦 Batch Inference</b></summary>
+
+```python
+from nimbo import NimboInference
+
+model = NimboInference("./output/final_merged")
+
+# Process multiple prompts at once
+prompts = ["Hello!", "How are you?", "Tell me a joke."]
+results = model.generate(prompts)
+```
+
+</details>
+
+<details>
+<summary><b>📄 Config Files</b></summary>
+
+```yaml
+# config.yaml
+lora:
+  r: 16
+  lora_alpha: 32
+
+training:
+  learning_rate: 0.0001
+  num_train_epochs: 3
+  gradient_checkpointing: true
+
+quantization:
+  load_in_4bit: true
+```
+
+```python
+trainer = Nimbo.from_config("config.yaml", "microsoft/phi-2", dataset)
+```
+
+</details>
+
+<details>
+<summary><b>💬 Chat Inference</b></summary>
+
+```python
+from nimbo import NimboInference
+
+model = NimboInference("./output/final_merged")
+
 messages = [
     {"role": "user", "content": "What is Python?"},
+    {"role": "assistant", "content": "Python is a programming language."},
+    {"role": "user", "content": "What can I do with it?"},
 ]
 response = model.chat(messages)
 ```
 
-### Config Files
+</details>
 
-Save and load configurations:
+---
 
-```python
-# Save config
-trainer.save_config("config.yaml")
+## 📊 API Reference
 
-# Load from config
-trainer = Nimbo.from_config(
-    config_path="config.yaml",
-    base_model_name="microsoft/phi-2",
-    dataset="your_dataset",
-)
-```
+### Core Classes
+
+| Class | Description |
+|-------|-------------|
+| `Nimbo` | Main trainer class for fine-tuning |
+| `NimboInference` | Standalone inference engine |
+| `NimboConfig` | Complete configuration container |
+
+### Configuration
+
+| Config | Purpose |
+|--------|---------|
+| `LoRAConfig` | LoRA hyperparameters (r, alpha, dropout) |
+| `TrainingConfig` | Training settings (lr, epochs, batch size) |
+| `InferenceConfig` | Generation settings (temperature, top_p) |
+| `QuantizationConfig` | QLoRA settings (4-bit, 8-bit) |
+| `DeviceConfig` | Device selection (cuda, mps, cpu) |
 
 ### Dataset Utilities
 
-Flexible dataset preparation:
-
-```python
-from nimbo import prepare_dataset, prepare_instruction_dataset
-
-# From various sources
-dataset = prepare_dataset(
-    source="./data.jsonl",  # or folder, .csv, .parquet
-    text_field="content",
-    chunk_size=256,
-    deduplicate=True,
-    min_length=50,
-)
-
-# Instruction-following format
-dataset = prepare_instruction_dataset(
-    source="./instructions.jsonl",
-    instruction_field="instruction",
-    input_field="input",
-    output_field="output",
-)
-```
+| Function | Description |
+|----------|-------------|
+| `prepare_dataset()` | Load from .txt, .csv, .jsonl, .parquet |
+| `prepare_instruction_dataset()` | Alpaca-style instruction format |
+| `prepare_chat_dataset()` | Chat/conversation format |
 
 ### Callbacks
 
-Monitor and control training:
+| Callback | Purpose |
+|----------|---------|
+| `ProgressCallback` | Training progress logging |
+| `EarlyStoppingCallback` | Stop on metric plateau |
+| `MemoryCallback` | GPU memory monitoring |
+| `LossTrackingCallback` | Loss history recording |
+| `WandbCallback` | Weights & Biases integration |
 
-```python
-from nimbo import Nimbo
-from nimbo.callbacks import (
-    ProgressCallback,
-    EarlyStoppingCallback,
-    MemoryCallback,
-    WandbCallback,
-)
+---
 
-trainer = Nimbo(
-    base_model_name="microsoft/phi-2",
-    dataset="your_dataset",
-    callbacks=[
-        ProgressCallback(),
-        MemoryCallback(),
-        WandbCallback(project="my-project"),
-    ],
-)
-```
-
-## Model Architecture Support
-
-Nimbo auto-detects appropriate LoRA target modules for:
-
-| Architecture | Models |
-|--------------|--------|
-| LLaMA | LLaMA, LLaMA 2, Code Llama |
-| Mistral | Mistral, Mixtral |
-| Phi | Phi-1, Phi-1.5, Phi-2 |
-| GPT-2 | GPT-2, DistilGPT-2 |
-| GPT-NeoX | Pythia, GPT-NeoX |
-| Falcon | Falcon-7B, Falcon-40B |
-| BLOOM | BLOOM, BLOOMZ |
-| OPT | OPT |
-| Qwen | Qwen, Qwen2 |
-| Gemma | Gemma |
-
-## API Reference
-
-### Nimbo
-
-Main training class.
-
-```python
-Nimbo(
-    base_model_name: str,           # HuggingFace model name
-    dataset: str | Dataset = None,   # Dataset name or object
-    text_field: str = "text",        # Text field in dataset
-    config: NimboConfig = None,      # Complete configuration
-    output_dir: str = "./nimbo_output",
-    lora_config: LoRAConfig = None,
-    training_config: TrainingConfig = None,
-    device_config: DeviceConfig = None,
-    quantization_config: QuantizationConfig = None,
-    use_flash_attention: bool = False,
-    auto_precision: bool = True,
-    callbacks: list = None,
-)
-
-# Methods
-trainer.train(resume_from_checkpoint=None) -> dict
-trainer.save(merge=True) -> str
-trainer.load_model(model_path, for_inference=True) -> tuple
-trainer.inference(prompt, config=None) -> str | list
-trainer.get_loss_history() -> dict
-trainer.save_config(path) -> None
-```
-
-### NimboInference
-
-Standalone inference class.
-
-```python
-NimboInference(
-    model_path: str,
-    device_config: DeviceConfig = None,
-    inference_config: InferenceConfig = None,
-    quantization_config: QuantizationConfig = None,
-    adapter_path: str = None,
-    use_flash_attention: bool = False,
-    compile_model: bool = False,
-)
-
-# Methods
-model.generate(prompt) -> str | list
-model.stream(prompt) -> Generator
-model.chat(messages) -> str
-model.merge_adapter(output_path) -> None
-```
-
-## Development
+## 🛠️ Development
 
 ```bash
 # Setup development environment
+git clone https://github.com/crinex/Nimbo.git
+cd Nimbo
 pip install -e ".[dev]"
 
 # Run tests
-pytest tests/
-
-# Run with coverage
-pytest tests/ --cov=src/nimbo
+pytest tests/ -v
 
 # Format code
 black src/ tests/
@@ -291,6 +309,24 @@ isort src/ tests/
 mypy src/nimbo
 ```
 
-## License
+---
 
-MIT License
+## 🔗 Links
+
+| Resource | Link |
+|----------|------|
+| 📖 Documentation | Coming Soon |
+| 🐛 Issues | [GitHub Issues](https://github.com/crinex/Nimbo/issues) |
+| 💬 Discussions | [GitHub Discussions](https://github.com/crinex/Nimbo/discussions) |
+
+---
+
+## 📜 License
+
+[MIT License](LICENSE) - Feel free to use Nimbo for personal and commercial projects!
+
+---
+
+<p align="center">
+  Made with ☁️ by the Nimbo Team
+</p>
