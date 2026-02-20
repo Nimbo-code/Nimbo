@@ -27,6 +27,7 @@ from .callbacks import (
 from .config import (
     DeviceConfig,
     InferenceConfig,
+    KernelConfig,
     LoRAConfig,
     NimboConfig,
     QuantizationConfig,
@@ -49,6 +50,7 @@ class Nimbo:
 
     # Auto-detected target modules for common model architectures
     TARGET_MODULE_MAP: Dict[str, List[str]] = {
+        "exaone": ["q_proj", "k_proj", "v_proj", "o_proj"],  # EXAONE 3.5, 4.0
         "llama": ["q_proj", "k_proj", "v_proj", "o_proj"],
         "mistral": ["q_proj", "k_proj", "v_proj", "o_proj"],
         "phi": ["q_proj", "k_proj", "v_proj", "dense"],
@@ -58,6 +60,7 @@ class Nimbo:
         "bloom": ["query_key_value", "dense"],
         "opt": ["q_proj", "k_proj", "v_proj", "out_proj"],
         "qwen": ["c_attn", "c_proj"],
+        "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj"],
         "gemma": ["q_proj", "k_proj", "v_proj", "o_proj"],
     }
 
@@ -73,8 +76,10 @@ class Nimbo:
         training_config: Optional[TrainingConfig] = None,
         device_config: Optional[DeviceConfig] = None,
         quantization_config: Optional[QuantizationConfig] = None,
+        kernel_config: Optional[KernelConfig] = None,
         # Convenience parameters
         use_flash_attention: bool = False,
+        use_triton_kernels: bool = True,
         auto_precision: bool = True,
         callbacks: Optional[List[NimboCallback]] = None,
     ):
@@ -90,7 +95,9 @@ class Nimbo:
             training_config: Training configuration
             device_config: Device configuration
             quantization_config: Quantization configuration (QLoRA)
+            kernel_config: Triton kernel configuration
             use_flash_attention: Enable Flash Attention 2 (P4)
+            use_triton_kernels: Enable Nimbo Triton kernels for acceleration
             auto_precision: Auto-detect best precision (P1)
             callbacks: List of training callbacks (P2)
         """
@@ -98,6 +105,8 @@ class Nimbo:
         self.text_field = text_field
         self.output_dir = output_dir
         self.use_flash_attention = use_flash_attention
+        self.use_triton_kernels = use_triton_kernels
+        self.kernel_patch_stats = None
 
         # Resolve configuration
         if config is not None:
@@ -108,6 +117,7 @@ class Nimbo:
                 lora=lora_config or LoRAConfig(),
                 training=training_config or TrainingConfig(output_dir=output_dir),
                 quantization=quantization_config or QuantizationConfig(),
+                kernels=kernel_config or KernelConfig(use_triton_kernels=use_triton_kernels),
             )
 
         # Ensure output_dir is consistent
@@ -200,6 +210,10 @@ class Nimbo:
         # Disable cache for training (P1)
         self.model.config.use_cache = False
 
+        # Apply Triton kernel patches for acceleration
+        if self.config.kernels.use_triton_kernels:
+            self._apply_kernel_patches()
+
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.base_model_name,
@@ -230,6 +244,51 @@ class Nimbo:
         default_modules = ["q_proj", "v_proj"]
         logger.info(f"Using default target modules: {default_modules}")
         return default_modules
+
+    def _apply_kernel_patches(self) -> None:
+        """Apply Nimbo Triton kernel patches to the model for acceleration.
+
+        Supported models: EXAONE, LLaMA, Mistral, Phi, Qwen2
+        Patches: RMSNorm (up to 11x), SwiGLU (up to 1.6x), RoPE (up to 5.4x)
+        """
+        try:
+            from .kernels import is_triton_available, patch_model, get_supported_models
+        except ImportError:
+            logger.warning("Nimbo kernels not available. Skipping kernel patches.")
+            return
+
+        if not is_triton_available():
+            logger.warning("Triton not available. Skipping kernel patches.")
+            return
+
+        if self.model is None:
+            return
+
+        # Check if model is supported
+        model_type = getattr(self.model.config, "model_type", "").lower()
+        supported = get_supported_models()
+
+        if not any(s in model_type for s in supported):
+            logger.info(
+                f"Model type '{model_type}' not supported for kernel patching. "
+                f"Supported: {supported}"
+            )
+            return
+
+        kernel_config = self.config.kernels
+
+        try:
+            self.kernel_patch_stats = patch_model(
+                self.model,
+                rms_norm=kernel_config.patch_rms_norm,
+                swiglu=kernel_config.patch_swiglu,
+                rope=kernel_config.patch_rope,
+                attention=kernel_config.patch_attention,
+            )
+            logger.info(f"Nimbo kernel patches applied:\n{self.kernel_patch_stats}")
+        except Exception as e:
+            logger.warning(f"Failed to apply kernel patches: {e}")
+            self.kernel_patch_stats = None
 
     def _setup_dataset(
         self,

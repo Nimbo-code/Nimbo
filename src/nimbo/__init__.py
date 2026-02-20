@@ -8,6 +8,7 @@ Nimbo is a comprehensive rewrite of SmoLoRA with all Priority 1-4 improvements:
 - QLoRA, Flash Attention, gradient checkpointing
 - Independent inference class
 - Config file support (YAML/JSON)
+- Custom Triton kernels for EXAONE, LLaMA, Mistral optimization (up to 11x speedup)
 """
 
 __version__ = "0.1.0"
@@ -25,6 +26,7 @@ from .callbacks import (
 from .config import (
     DeviceConfig,
     InferenceConfig,
+    KernelConfig,
     LoRAConfig,
     NimboConfig,
     QuantizationConfig,
@@ -59,6 +61,7 @@ __all__ = [
     "TrainingConfig",
     "InferenceConfig",
     "QuantizationConfig",
+    "KernelConfig",
     # Callbacks
     "NimboCallback",
     "ProgressCallback",

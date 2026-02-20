@@ -236,6 +236,26 @@ class InferenceConfig:
 
 
 @dataclass
+class KernelConfig:
+    """Configuration for Nimbo Triton kernel optimizations.
+
+    Enables model-specific optimized kernels for accelerated training.
+    """
+
+    # Enable Triton kernels (auto-detect model compatibility)
+    use_triton_kernels: bool = True
+
+    # Individual kernel toggles
+    patch_rms_norm: bool = True  # Up to 11x speedup
+    patch_swiglu: bool = True    # Up to 1.6x speedup
+    patch_rope: bool = True      # Up to 5.4x speedup
+    patch_attention: bool = False  # Relies on Flash Attention 2
+
+    # Use Flash Attention 2 for attention (requires flash_attn package)
+    use_flash_attention: bool = True
+
+
+@dataclass
 class QuantizationConfig:
     """Quantization configuration for memory-efficient training and inference.
 
@@ -284,6 +304,7 @@ class NimboConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     inference: InferenceConfig = field(default_factory=InferenceConfig)
     quantization: QuantizationConfig = field(default_factory=QuantizationConfig)
+    kernels: KernelConfig = field(default_factory=KernelConfig)
 
     @classmethod
     def from_yaml(cls, path: str) -> "NimboConfig":
@@ -299,6 +320,7 @@ class NimboConfig:
             training=TrainingConfig(**data.get("training", {})),
             inference=InferenceConfig(**data.get("inference", {})),
             quantization=QuantizationConfig(**data.get("quantization", {})),
+            kernels=KernelConfig(**data.get("kernels", {})),
         )
 
     @classmethod
@@ -315,6 +337,7 @@ class NimboConfig:
             training=TrainingConfig(**data.get("training", {})),
             inference=InferenceConfig(**data.get("inference", {})),
             quantization=QuantizationConfig(**data.get("quantization", {})),
+            kernels=KernelConfig(**data.get("kernels", {})),
         )
 
     def to_yaml(self, path: str) -> None:
