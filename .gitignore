@@ -93,3 +93,4 @@ logs/
 config.local.yaml
 config.local.json
 .env.local
+.omc.omc/
