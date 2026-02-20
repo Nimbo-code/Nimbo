@@ -3,16 +3,18 @@
 Supports:
 - LLaMA 2 (7B, 13B, 70B)
 - LLaMA 3 (8B, 70B)
+- LLaMA 3.2 (1B, 3B) - Optimized for on-device deployment
 - Code Llama
 - Mistral (similar architecture)
 - Phi (similar architecture)
+- Qwen2 (similar architecture)
 
 LLaMA Architecture:
-- GQA (Grouped Query Attention) in LLaMA 2 70B and LLaMA 3
+- GQA (Grouped Query Attention) in LLaMA 2 70B, LLaMA 3, LLaMA 3.2
 - MHA (Multi-Head Attention) in LLaMA 2 7B/13B
 - RMSNorm with eps=1e-5
 - SwiGLU activation
-- RoPE
+- RoPE with extended context support
 """
 
 import logging

@@ -7,23 +7,25 @@ This module provides optimized Triton kernels for various LLM operations:
 
 Supported model architectures:
 - EXAONE (3.5, 4.0) - Full support with EXAONE-specific optimizations
-- LLaMA (2, 3) - Full support
-- Mistral - Full support
-- Phi (2, 3) - Full support
-- Qwen (2) - Full support
+- LLaMA 2 (7B, 13B, 70B) - Full support
+- LLaMA 3 (8B, 70B) - Full support
+- LLaMA 3.2 (1B, 3B) - Full support, optimized for on-device
+- Mistral (7B) - Full support
+- Phi (2, 3, 3.5) - Full support
+- Qwen2 (0.5B, 1.5B, 7B) - Full support
 
 Example:
-    >>> from nimbo.kernels import patch_exaone
+    >>> from nimbo.kernels import patch_model
     >>> from transformers import AutoModelForCausalLM
     >>>
-    >>> model = AutoModelForCausalLM.from_pretrained("LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct")
-    >>> stats = patch_exaone(model)
+    >>> model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
+    >>> stats = patch_model(model)
     >>> print(stats)
-    Nimbo patches applied to ExaonePatcher:
-      - RMSNorm: 65
-      - SwiGLU: 32
-      - RoPE: 32
-      - Total: 129
+    Nimbo patches applied to LlamaPatcher:
+      - RMSNorm: 33
+      - SwiGLU: 16
+      - RoPE: 16
+      - Total: 65
 """
 
 import logging

@@ -69,17 +69,16 @@ trainer.save()  # Merged model ready
 
 ```python
 # Export to deployment-ready formats
-trainer.export(format="onnx")      # ONNX for cross-platform
+trainer.export(format="onnx")      # ONNX for cross-platform (Windows, Linux, Android)
 trainer.export(format="coreml")    # CoreML for iOS/macOS
-trainer.export(format="tflite")    # TFLite for Android
 ```
 
 ### Step 3: Deploy with Sample Apps
 
 ```bash
 # Coming soon: Ready-to-use sample applications
-nimbo deploy --format android --model ./output/model.tflite
 nimbo deploy --format ios --model ./output/model.mlmodel
+nimbo deploy --format onnx --model ./output/model.onnx
 ```
 
 ---
@@ -155,16 +154,25 @@ pip install -e ".[dev]"
 
 ## 🎯 Supported Models
 
-| Architecture | Models | On-Device Ready |
-|--------------|--------|:---------------:|
-| **EXAONE** | EXAONE 3.5/4.0 (1.2B-32B) | ✅ Optimized |
-| **LLaMA** | LLaMA 2/3, Code Llama | ✅ Optimized |
-| **Phi** | Phi-2, Phi-3, Phi-3.5 | ✅ Recommended |
-| **Qwen** | Qwen2, Qwen2.5 | ✅ |
-| **Gemma** | Gemma, Gemma 2 | ✅ |
-| **Mistral** | Mistral, Mixtral | ✅ |
+### Triton-Optimized Models (Accelerated Training)
 
-> **Tip:** For on-device deployment, we recommend models under 3B parameters (Phi-2, EXAONE 1.2B, Qwen2-1.5B)
+| Architecture | Models | Triton Kernels | On-Device |
+|--------------|--------|:--------------:|:---------:|
+| **LLaMA 3.2** | 1B, 3B Instruct | ✅ Full | ✅ Recommended |
+| **EXAONE** | 3.5/4.0 (1.2B-32B) | ✅ Full | ✅ |
+| **LLaMA** | 2 (7B-70B), 3 (8B, 70B) | ✅ Full | ✅ |
+| **Phi** | Phi-2, Phi-3, Phi-3.5 | ✅ Full | ✅ |
+| **Qwen2** | 0.5B, 1.5B, 7B | ✅ Full | ✅ |
+| **Mistral** | 7B | ✅ Full | ✅ |
+
+### Other Compatible Models
+
+| Architecture | Models | On-Device |
+|--------------|--------|:---------:|
+| **Gemma** | Gemma, Gemma 2 | ✅ |
+| **Mixtral** | 8x7B | ⚠️ Large |
+
+> **On-Device Recommendation:** LLaMA 3.2 1B/3B, Phi-2, EXAONE 1.2B, Qwen2-1.5B
 
 ---
 
@@ -320,12 +328,11 @@ for token in model.stream("Once upon a time"):
 - [x] Response-only fine-tuning (completion_only_loss)
 - [x] Triton kernel acceleration
 - [x] EXAONE 4.0 optimization
+- [x] LLaMA 3.2 (1B, 3B) Triton optimization
 - [ ] ONNX export with quantization
-- [ ] CoreML export for iOS
-- [ ] TFLite export for Android
+- [ ] CoreML export for iOS/macOS
 - [ ] Sample iOS app (SwiftUI)
-- [ ] Sample Android app (Kotlin)
-- [ ] WebGPU inference demo
+- [ ] ONNX Runtime sample app
 
 ---
 
