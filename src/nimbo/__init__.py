@@ -9,9 +9,10 @@ Nimbo is a comprehensive rewrite of SmoLoRA with all Priority 1-4 improvements:
 - Independent inference class
 - Config file support (YAML/JSON)
 - Custom Triton kernels for EXAONE, LLaMA, Mistral optimization (up to 11x speedup)
+- On-device export: CoreML (Apple Neural Engine), ONNX (cross-platform)
 """
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 from .callbacks import (
     CheckpointCallback,
@@ -48,6 +49,9 @@ from .dataset import (
 )
 from .inference import NimboInference, load_for_inference
 
+# Export module (CoreML, ONNX conversion)
+from . import export
+
 __all__ = [
     # Main class
     "Nimbo",
@@ -83,4 +87,6 @@ __all__ = [
     "chunk_texts",
     "chunk_by_tokens",
     "filter_texts",
+    # Export module
+    "export",
 ]

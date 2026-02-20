@@ -65,12 +65,25 @@ trainer.train()
 trainer.save()  # Merged model ready
 ```
 
-### Step 2: Export for Deployment
+### Step 2: Export for On-Device Deployment
 
 ```python
-# Export to deployment-ready formats
-trainer.export(format="onnx")      # ONNX for cross-platform (Windows, Linux, Android)
-trainer.export(format="coreml")    # CoreML for iOS/macOS
+# Export to CoreML for iOS/macOS (Apple Neural Engine optimized)
+from nimbo.export import LlamaConverter, LlamaConfig, LlamaForCausalLM
+
+# Load and convert model
+config = LlamaConfig.from_json("./model/config.json")
+model = LlamaForCausalLM(config)
+model.load_pretrained_weights("./model")
+
+# Convert to CoreML with 4-bit LUT quantization
+converter = LlamaConverter(
+    model=model,
+    context_length=512,
+    lut_bits=4,  # 4-bit quantization (supported: 4, 6, 8)
+)
+coreml_model = converter.convert(split_part="monolithic")
+coreml_model.save("model.mlpackage")
 ```
 
 ### Step 3: Deploy with Sample Apps
@@ -286,7 +299,47 @@ trainer.save()
 </details>
 
 <details>
-<summary><b>Export to ONNX</b></summary>
+<summary><b>Export to CoreML (iOS/macOS)</b></summary>
+
+```python
+from nimbo.export import LlamaConverter, LlamaConfig, LlamaForCausalLM
+
+# Load model configuration and weights
+config = LlamaConfig.from_json("./model/config.json")
+model = LlamaForCausalLM(config)
+model.load_pretrained_weights("./model")
+
+# Create converter with optimizations
+converter = LlamaConverter(
+    model=model,
+    context_length=512,      # Max sequence length
+    lut_bits=4,              # LUT quantization (4-bit, 6-bit, or 8-bit)
+    batch_size=64,           # Batch size for prefill mode
+)
+
+# Convert to monolithic CoreML model
+coreml_model = converter.convert(split_part="monolithic")
+coreml_model.save("llama_monolithic.mlpackage")
+
+# Or convert as separate components for flexible deployment
+embeddings = converter.convert(split_part="1")     # Embeddings
+transformer = converter.convert(split_part="2")   # FFN layers
+lm_head = converter.convert(split_part="3")       # LM head
+```
+
+**Supported split_part options:**
+- `"monolithic"` - Single file (inference mode)
+- `"monolithic_prefill"` - Single file (prefill mode)
+- `"1"` - Embeddings only
+- `"2"` - Transformer FFN layers
+- `"2_prefill"` - Transformer prefill mode
+- `"3"` - LM head only
+- `"123"` - All components as separate files
+
+</details>
+
+<details>
+<summary><b>Export to ONNX (Coming Soon)</b></summary>
 
 ```python
 from nimbo import Nimbo
@@ -329,8 +382,8 @@ for token in model.stream("Once upon a time"):
 - [x] Triton kernel acceleration
 - [x] EXAONE 4.0 optimization
 - [x] LLaMA 3.2 (1B, 3B) Triton optimization
+- [x] CoreML export for iOS/macOS (ANE optimized, LUT quantization)
 - [ ] ONNX export with quantization
-- [ ] CoreML export for iOS/macOS
 - [ ] Sample iOS app (SwiftUI)
 - [ ] ONNX Runtime sample app
 
@@ -344,7 +397,16 @@ for token in model.stream("Once upon a time"):
 |-------|-------------|
 | `Nimbo` | Main trainer for fine-tuning |
 | `NimboInference` | Lightweight inference engine |
-| `NimboExporter` | Model export utilities |
+| `LlamaConverter` | CoreML export for LLaMA models |
+
+### Export Module (`nimbo.export`)
+
+| Class | Description |
+|-------|-------------|
+| `LlamaConverter` | Convert LLaMA to CoreML (ANE optimized) |
+| `LlamaConfig` | Configuration for ANE-optimized model |
+| `LlamaForCausalLM` | ANE-optimized LLaMA implementation |
+| `BaseConverter` | Abstract base for custom converters |
 
 ### Configuration
 
@@ -352,8 +414,17 @@ for token in model.stream("Once upon a time"):
 |--------|---------|
 | `LoRAConfig` | LoRA hyperparameters |
 | `TrainingConfig` | Training settings |
-| `ExportConfig` | Export format settings |
 | `QuantizationConfig` | QLoRA settings |
+
+### CoreML Export Options
+
+| Option | Description |
+|--------|-------------|
+| `context_length` | Maximum sequence length (default: 512) |
+| `lut_bits` | LUT quantization: 4, 6, or 8 bits |
+| `batch_size` | Batch size for prefill mode (default: 64) |
+| `split_part` | Model splitting strategy |
+| `argmax_in_model` | Compute argmax inside model |
 
 ---
 
