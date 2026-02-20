@@ -57,6 +57,44 @@ class TestLoRAConfig:
         assert config.lora_dropout == 0.1
         assert config.bias == "none"
         assert config.task_type == "CAUSAL_LM"
+        assert config.init_lora_weights is True
+        assert config.use_rslora is False
+        assert config.use_dora is False
+
+    def test_olora_initialization(self):
+        """Test OLoRA (orthogonal) initialization setting."""
+        config = LoRAConfig(init_lora_weights="olora")
+        assert config.init_lora_weights == "olora"
+
+        with patch("peft.LoraConfig") as mock_peft:
+            config.to_peft_config()
+            call_kwargs = mock_peft.call_args[1]
+            assert call_kwargs["init_lora_weights"] == "olora"
+
+    def test_pissa_initialization(self):
+        """Test PiSSA initialization setting."""
+        config = LoRAConfig(init_lora_weights="pissa")
+        assert config.init_lora_weights == "pissa"
+
+    def test_rslora_enabled(self):
+        """Test RSLoRA (rank-stabilized) option."""
+        config = LoRAConfig(use_rslora=True)
+        assert config.use_rslora is True
+
+        with patch("peft.LoraConfig") as mock_peft:
+            config.to_peft_config()
+            call_kwargs = mock_peft.call_args[1]
+            assert call_kwargs["use_rslora"] is True
+
+    def test_dora_enabled(self):
+        """Test DoRA (weight-decomposed) option."""
+        config = LoRAConfig(use_dora=True)
+        assert config.use_dora is True
+
+        with patch("peft.LoraConfig") as mock_peft:
+            config.to_peft_config()
+            call_kwargs = mock_peft.call_args[1]
+            assert call_kwargs["use_dora"] is True
 
     def test_to_peft_config(self):
         """Test conversion to PEFT config."""
@@ -79,6 +117,21 @@ class TestTrainingConfig:
         assert config.per_device_train_batch_size == 1
         assert config.gradient_accumulation_steps == 8
         assert config.learning_rate == 2e-4
+        assert config.train_on_responses_only is False
+
+    def test_response_only_training_config(self):
+        """Test response-only fine-tuning configuration."""
+        config = TrainingConfig(train_on_responses_only=True)
+        assert config.train_on_responses_only is True
+
+    def test_response_only_to_sft_config(self):
+        """Test response-only training is passed to SFTConfig."""
+        config = TrainingConfig(train_on_responses_only=True)
+
+        with patch("trl.SFTConfig") as mock_sft:
+            config.to_sft_config()
+            call_kwargs = mock_sft.call_args[1]
+            assert call_kwargs["completion_only_loss"] is True
 
     def test_auto_detect_precision_cuda_bf16(self):
         """Test bf16 auto-detection on CUDA."""

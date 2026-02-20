@@ -1,7 +1,7 @@
 """Configuration dataclasses for Nimbo - Priority 2 improvement."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 
 @dataclass
@@ -31,6 +31,12 @@ class LoRAConfig:
 
     Priority 2: Configurable LoRA hyperparameters instead of hardcoded values.
     Priority 3: Auto target_modules detection.
+
+    Supports multiple LoRA variants:
+    - Standard LoRA: Default random initialization
+    - OLoRA: Orthogonal initialization using QR decomposition (better stability)
+    - PiSSA: Principal Singular values and Singular vectors Adaptation
+    - LoftQ: Quantization-aware LoRA initialization
     """
 
     r: int = 8
@@ -40,6 +46,16 @@ class LoRAConfig:
     task_type: str = "CAUSAL_LM"
     target_modules: Optional[List[str]] = None  # None = auto-detect
     modules_to_save: Optional[List[str]] = None
+
+    # LoRA variant selection
+    # Options: True (default), "olora", "pissa", "pissa_niter_[N]", "loftq", False (zeros)
+    init_lora_weights: Union[bool, Literal["olora", "pissa", "loftq", "gaussian"]] = True
+
+    # Use RSLoRA (Rank-Stabilized LoRA) - scales alpha by sqrt(r)
+    use_rslora: bool = False
+
+    # Use DoRA (Weight-Decomposed LoRA) - decomposes weight into magnitude and direction
+    use_dora: bool = False
 
     # Additional PEFT kwargs passthrough
     extra_kwargs: Dict[str, Any] = field(default_factory=dict)
@@ -54,6 +70,9 @@ class LoRAConfig:
             "lora_dropout": self.lora_dropout,
             "bias": self.bias,
             "task_type": self.task_type,
+            "init_lora_weights": self.init_lora_weights,
+            "use_rslora": self.use_rslora,
+            "use_dora": self.use_dora,
         }
 
         if self.target_modules is not None:
@@ -135,6 +154,12 @@ class TrainingConfig:
     dataloader_num_workers: int = 0
     dataloader_pin_memory: bool = True
 
+    # Response-only fine-tuning (completion_only_loss)
+    # When enabled, only computes loss on completion/response tokens
+    # For prompt-completion datasets: loss only on the completion part
+    # For conversational datasets: use assistant_only_loss instead via extra_kwargs
+    train_on_responses_only: bool = False
+
     # Additional SFTConfig kwargs passthrough
     extra_kwargs: Dict[str, Any] = field(default_factory=dict)
 
@@ -191,6 +216,7 @@ class TrainingConfig:
             "dataloader_num_workers": self.dataloader_num_workers,
             "dataloader_pin_memory": self.dataloader_pin_memory,
             "dataset_text_field": "text",
+            "completion_only_loss": self.train_on_responses_only,
         }
 
         config_dict.update(self.extra_kwargs)

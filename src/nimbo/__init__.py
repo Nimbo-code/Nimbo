@@ -11,7 +11,7 @@ Nimbo is a comprehensive rewrite of SmoLoRA with all Priority 1-4 improvements:
 - Custom Triton kernels for EXAONE, LLaMA, Mistral optimization (up to 11x speedup)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.0.3"
 
 from .callbacks import (
     CheckpointCallback,

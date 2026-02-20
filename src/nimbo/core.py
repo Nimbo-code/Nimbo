@@ -364,6 +364,13 @@ class Nimbo:
                 )
             )
 
+        # Log response-only training status
+        if self.config.training.train_on_responses_only:
+            logger.info(
+                "Response-only fine-tuning enabled via completion_only_loss. "
+                "Loss will only be computed on completion/response tokens."
+            )
+
         # Initialize trainer
         self.trainer = SFTTrainer(
             model=self.model,

@@ -228,6 +228,56 @@ trainer = Nimbo(
 </details>
 
 <details>
+<summary><b>OLoRA (Orthogonal LoRA) for Better Stability</b></summary>
+
+```python
+from nimbo import Nimbo, LoRAConfig
+
+# OLoRA uses orthogonal initialization via QR decomposition
+# Better training stability compared to standard LoRA
+trainer = Nimbo(
+    base_model_name="microsoft/phi-2",
+    dataset="your_dataset",
+    lora_config=LoRAConfig(
+        r=16,
+        lora_alpha=32,
+        init_lora_weights="olora",  # Orthogonal initialization
+    ),
+)
+
+# Other options:
+# - init_lora_weights="pissa"  # Principal Singular Values Adaptation
+# - init_lora_weights="loftq"  # Quantization-aware initialization
+# - use_rslora=True            # Rank-Stabilized LoRA (scales alpha by sqrt(r))
+# - use_dora=True              # Weight-Decomposed LoRA
+```
+
+</details>
+
+<details>
+<summary><b>Response-Only Fine-tuning (Instruction Tuning)</b></summary>
+
+```python
+from nimbo import Nimbo, TrainingConfig
+
+# Only compute loss on response/completion tokens
+# Instruction/input tokens are masked (labels=-100)
+trainer = Nimbo(
+    base_model_name="microsoft/phi-2",
+    dataset="your_instruction_dataset",  # prompt-completion format
+    training_config=TrainingConfig(
+        train_on_responses_only=True,  # Only train on completions
+        learning_rate=2e-4,
+    ),
+)
+
+trainer.train()
+trainer.save()
+```
+
+</details>
+
+<details>
 <summary><b>Export to ONNX</b></summary>
 
 ```python
@@ -266,6 +316,8 @@ for token in model.stream("Once upon a time"):
 ## 🗺️ Roadmap
 
 - [x] LoRA/QLoRA fine-tuning
+- [x] OLoRA (Orthogonal LoRA) and advanced variants (RSLoRA, DoRA, PiSSA)
+- [x] Response-only fine-tuning (completion_only_loss)
 - [x] Triton kernel acceleration
 - [x] EXAONE 4.0 optimization
 - [ ] ONNX export with quantization
