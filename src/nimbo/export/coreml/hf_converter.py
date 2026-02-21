@@ -62,6 +62,8 @@ class ConversionConfig:
 
     # Quantization
     lut_bits: int = 4  # 4, 6, or 8
+    lut_embeddings_bits: int = None  # None=follows lut_bits, -1=no quantization (float16)
+    lut_lmhead_bits: int = None      # None=follows lut_bits
 
     # Model splitting
     split_model: bool = False
@@ -286,10 +288,91 @@ def convert_hf_to_nimbo(
     return output_dir, nimbo_model, nimbo_config
 
 
+def _copy_tokenizer_files(model_id_or_path: str, temp_dir: str, output_dir: str):
+    """Copy tokenizer files from the source model to the output directory."""
+    tokenizer_files = [
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "config.json",
+        "special_tokens_map.json",
+        "tokenizer.model",
+    ]
+
+    # Try source model path first, then temp_dir
+    source_dirs = []
+    if os.path.isdir(model_id_or_path):
+        source_dirs.append(model_id_or_path)
+    source_dirs.append(temp_dir)
+
+    copied = []
+    for filename in tokenizer_files:
+        for src_dir in source_dirs:
+            src_path = os.path.join(src_dir, filename)
+            if os.path.exists(src_path):
+                dst_path = os.path.join(output_dir, filename)
+                shutil.copy2(src_path, dst_path)
+                copied.append(filename)
+                break
+
+    if copied:
+        print(f"\n  Copied tokenizer files: {', '.join(copied)}")
+    else:
+        print("\n  Warning: No tokenizer files found to copy")
+
+
+def _generate_meta_yaml(
+    output_dir: str,
+    model_name: str,
+    nimbo_config,
+    context_length: int,
+    batch_size: int,
+    lut_bits: int,
+    lut_embeddings_bits: int,
+    lut_lmhead_bits: int,
+    num_chunks: int,
+    output_paths: list,
+):
+    """Generate meta.yaml for NimboChat to load the split model."""
+    import yaml
+
+    # Build model file list from output_paths (just basenames)
+    model_files = [os.path.basename(p) for p in output_paths if os.path.exists(p)]
+
+    meta = {
+        "model_name": model_name,
+        "model_type": "llama",
+        "context_length": context_length,
+        "batch_size": batch_size,
+        "state_length": context_length,
+        "num_chunks": num_chunks,
+        "quantization": {
+            "decoder_bits": lut_bits,
+            "embeddings_bits": lut_embeddings_bits if lut_embeddings_bits is not None else lut_bits,
+            "lmhead_bits": lut_lmhead_bits if lut_lmhead_bits is not None else lut_bits,
+        },
+        "model_config": {
+            "hidden_size": nimbo_config.hidden_size,
+            "vocab_size": nimbo_config.vocab_size,
+            "num_hidden_layers": nimbo_config.num_hidden_layers,
+            "num_attention_heads": nimbo_config.num_attention_heads,
+            "num_key_value_heads": nimbo_config.num_key_value_heads,
+        },
+        "files": model_files,
+    }
+
+    meta_path = os.path.join(output_dir, "meta.yaml")
+    with open(meta_path, 'w') as f:
+        yaml.dump(meta, f, default_flow_style=False, sort_keys=False)
+
+    print(f"  Generated: {meta_path}")
+
+
 def convert_hf_to_coreml(
     model_id_or_path: str,
     output_dir: str,
     lut_bits: int = 4,
+    lut_embeddings_bits: int = None,
+    lut_lmhead_bits: int = None,
     context_length: int = 512,
     state_length: int = 512,
     batch_size: int = 64,
@@ -309,6 +392,8 @@ def convert_hf_to_coreml(
         model_id_or_path: HuggingFace model ID (e.g., "meta-llama/Llama-3.2-1B") or local path
         output_dir: Directory to save CoreML models
         lut_bits: LUT quantization bits (4, 6, or 8)
+        lut_embeddings_bits: Override LUT bits for embeddings (None=follow lut_bits, -1=no quantization)
+        lut_lmhead_bits: Override LUT bits for LM head (None=follow lut_bits)
         context_length: Maximum sequence length
         state_length: KV cache state length
         batch_size: Batch size for prefill mode
@@ -341,6 +426,8 @@ def convert_hf_to_coreml(
     # Use config object if provided
     if config is not None:
         lut_bits = config.lut_bits
+        lut_embeddings_bits = config.lut_embeddings_bits
+        lut_lmhead_bits = config.lut_lmhead_bits
         context_length = config.context_length
         state_length = config.state_length
         batch_size = config.batch_size
@@ -361,6 +448,10 @@ def convert_hf_to_coreml(
     print(f"Converting {model_name} to CoreML")
     print("=" * 60)
     print(f"  LUT bits: {lut_bits}")
+    if lut_embeddings_bits is not None:
+        print(f"  Embeddings bits: {lut_embeddings_bits} ({'float16' if lut_embeddings_bits < 0 else f'lut{lut_embeddings_bits}'})")
+    if lut_lmhead_bits is not None:
+        print(f"  LM Head bits: {lut_lmhead_bits}")
     print(f"  Context length: {context_length}")
     print(f"  Split model: {split_model} (chunks: {num_chunks})")
     print(f"  Include prefill: {include_prefill}")
@@ -391,69 +482,106 @@ def convert_hf_to_coreml(
             state_length=state_length,
             lut_bits=lut_bits,
             batch_size=batch_size,
+            lut_embeddings_bits=lut_embeddings_bits,
+            lut_lmhead_bits=lut_lmhead_bits,
         )
 
         # Step 3: Convert model(s)
-        if split_model and num_chunks > 1:
-            print(f"\nStep 3: Converting model in {num_chunks} chunks...")
+        if split_model:
+            print(f"\nStep 3: Converting split model (embeddings + decoder + lm_head)...")
             converter.num_chunks = num_chunks
 
+            # Determine effective bits for naming
+            embed_bits_eff = lut_embeddings_bits if lut_embeddings_bits is not None else lut_bits
+            lmhead_bits_eff = lut_lmhead_bits if lut_lmhead_bits is not None else lut_bits
+
+            # --- Embeddings ---
+            print("\n  Converting embeddings...")
+            if embed_bits_eff is not None and embed_bits_eff > 0:
+                embed_path = os.path.join(output_dir, f"{model_name}_embeddings_lut{embed_bits_eff}.mlpackage")
+            else:
+                embed_path = os.path.join(output_dir, f"{model_name}_embeddings.mlpackage")
+            embed_model = converter.convert(split_part="1")
+            embed_model.save(embed_path)
+            output_paths.append(embed_path)
+            print(f"    Saved: {embed_path}")
+            del embed_model
+
+            # --- Decoder chunks ---
             for chunk_idx in range(num_chunks):
-                print(f"\n  Chunk {chunk_idx + 1}/{num_chunks}:")
+                if num_chunks > 1:
+                    chunk_suffix = f"_chunk{chunk_idx + 1:02d}of{num_chunks:02d}"
+                    print(f"\n  Chunk {chunk_idx + 1}/{num_chunks}:")
+                else:
+                    chunk_suffix = ""
 
                 # Inference mode
                 infer_path = os.path.join(
                     output_dir,
-                    f"{model_name}_decoder_lut{lut_bits}_chunk{chunk_idx + 1:02d}of{num_chunks:02d}.mlpackage"
+                    f"{model_name}_FFN_lut{lut_bits}{chunk_suffix}.mlpackage"
                 )
-                print(f"    Converting inference mode...")
-                infer_model = converter.convert(split_part="2", chunk_idx=chunk_idx)
+                print(f"    Converting decoder inference mode...")
+                infer_model = converter.convert(split_part="2", chunk_idx=chunk_idx if num_chunks > 1 else None)
                 infer_model.save(infer_path)
                 output_paths.append(infer_path)
                 print(f"    Saved: {infer_path}")
+                del infer_model
 
                 # Prefill mode
                 if include_prefill:
                     prefill_path = os.path.join(
                         output_dir,
-                        f"{model_name}_decoder_prefill_lut{lut_bits}_chunk{chunk_idx + 1:02d}of{num_chunks:02d}.mlpackage"
+                        f"{model_name}_FFN_prefill_lut{lut_bits}{chunk_suffix}.mlpackage"
                     )
-                    print(f"    Converting prefill mode...")
-                    prefill_model = converter.convert(split_part="2_prefill", chunk_idx=chunk_idx)
+                    print(f"    Converting decoder prefill mode...")
+                    prefill_model = converter.convert(split_part="2_prefill", chunk_idx=chunk_idx if num_chunks > 1 else None)
                     prefill_model.save(prefill_path)
                     output_paths.append(prefill_path)
                     print(f"    Saved: {prefill_path}")
+                    del prefill_model
 
-                    # Combine if requested
+                    # Combine infer + prefill
                     if combine_models:
                         combined_path = os.path.join(
                             output_dir,
-                            f"{model_name}_decoder_full_lut{lut_bits}_chunk{chunk_idx + 1:02d}of{num_chunks:02d}.mlpackage"
+                            f"{model_name}_FFN_PF_lut{lut_bits}{chunk_suffix}.mlpackage"
                         )
-                        print(f"    Combining models...")
+                        print(f"    Combining infer + prefill...")
                         combine_monolithic(
                             infer_path, prefill_path, combined_path,
                             use_dedup=use_dedup
                         )
                         output_paths.append(combined_path)
 
-                        # Remove individual files if combined
-                        os.remove(infer_path) if os.path.exists(infer_path) else None
-                        os.remove(prefill_path) if os.path.exists(prefill_path) else None
+                        # Remove individual infer/prefill files
+                        shutil.rmtree(infer_path, ignore_errors=True)
+                        shutil.rmtree(prefill_path, ignore_errors=True)
                         output_paths = [p for p in output_paths if p != infer_path and p != prefill_path]
 
-            # Convert embeddings and lm_head separately
-            print("\n  Converting embeddings...")
-            embed_path = os.path.join(output_dir, f"{model_name}_embeddings.mlpackage")
-            embed_model = converter.convert(split_part="1")
-            embed_model.save(embed_path)
-            output_paths.append(embed_path)
-
-            print("  Converting lm_head...")
-            lmhead_path = os.path.join(output_dir, f"{model_name}_lm_head_lut{lut_bits}.mlpackage")
+            # --- LM Head ---
+            print("\n  Converting lm_head...")
+            if lmhead_bits_eff is not None and lmhead_bits_eff > 0:
+                lmhead_path = os.path.join(output_dir, f"{model_name}_lm_head_lut{lmhead_bits_eff}.mlpackage")
+            else:
+                lmhead_path = os.path.join(output_dir, f"{model_name}_lm_head.mlpackage")
             lmhead_model = converter.convert(split_part="3")
             lmhead_model.save(lmhead_path)
             output_paths.append(lmhead_path)
+            print(f"    Saved: {lmhead_path}")
+            del lmhead_model
+
+            # --- Copy tokenizer files & generate meta.yaml ---
+            _copy_tokenizer_files(model_id_or_path, temp_dir, output_dir)
+            _generate_meta_yaml(
+                output_dir, model_name, nimbo_config,
+                context_length=context_length,
+                batch_size=batch_size,
+                lut_bits=lut_bits,
+                lut_embeddings_bits=lut_embeddings_bits,
+                lut_lmhead_bits=lut_lmhead_bits,
+                num_chunks=num_chunks,
+                output_paths=output_paths,
+            )
 
         else:
             # Monolithic conversion

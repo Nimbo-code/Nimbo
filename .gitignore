@@ -95,7 +95,7 @@ config.local.json
 .env.local
 .omc
 tokens
-
+.omc/state
 # macOS
 .DS_Store
 

@@ -167,9 +167,10 @@ class LlamaConverter(BaseConverter):
         elif split_part == '2_prefill':
             return self.convert_decoder_prefill(self.model, chunk_idx=chunk_idx)
         elif split_part == '3':
+            lmhead_bits = self.lut_lmhead_bits if self.lut_lmhead_bits is not None else self.lut_bits
             return self.convert_lm_head(
                 self.model,
-                lut_bits=self.lut_bits,
+                lut_bits=lmhead_bits,
                 argmax_in_model=self.argmax_in_model,
             )
         elif split_part == 'monolithic':
@@ -466,10 +467,20 @@ class LlamaConverter(BaseConverter):
             convert_to="mlprogram"
         )
 
-        if self.lut_bits:
+        embed_bits = self.lut_embeddings_bits if self.lut_embeddings_bits is not None else self.lut_bits
+        if embed_bits is not None and embed_bits > 0:  # -1 means skip (keep float16)
+            # Temporarily override lut_bits for postprocess
+            orig_lut_bits = self.lut_bits
+            orig_per_channel = self.per_channel
+            self.lut_bits = embed_bits
+            self.per_channel = self.lut_embeddings_per_channel
             self.converted_model = mlmodel
             self.postprocess(num_workers=8)
             mlmodel = self.converted_model
+            self.lut_bits = orig_lut_bits
+            self.per_channel = orig_per_channel
+        elif embed_bits is not None and embed_bits < 0:
+            print("Skipping embeddings quantization (float16)")
 
         return mlmodel
 
