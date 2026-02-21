@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2025, Nimbo
-# Licensed under MIT License
+# Licensed under the Apache License, Version 2.0
 
 """
 Korean Cooking Domain Instruction Fine-tuning Example

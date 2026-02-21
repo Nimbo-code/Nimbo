@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/crinex/Nimbo/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"/>
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"/>
   </a>
   <a href="https://www.python.org/downloads/">
     <img src="https://img.shields.io/badge/Python-3.9+-green.svg" alt="Python"/>
@@ -538,7 +538,7 @@ black src/ && isort src/
 
 ## 📜 License
 
-[MIT License](LICENSE) — Use freely for personal and commercial projects.
+[Apache License 2.0](LICENSE) — Use freely for personal and commercial projects.
 
 ---
 

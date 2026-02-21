@@ -1,5 +1,5 @@
 # Copyright (c) 2025, Nimbo
-# Licensed under MIT License
+# Licensed under the Apache License, Version 2.0
 
 """
 Apple Neural Engine (ANE) Compatibility Checker
