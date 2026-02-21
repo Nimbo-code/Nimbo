@@ -165,6 +165,98 @@ pip install -e ".[dev]"
 
 ---
 
+## 🔧 Environment Setup (Fine-tuning to CoreML)
+
+Complete guide for running the full pipeline: **Fine-tune → Merge → CoreML Convert → Deploy**
+
+### Prerequisites
+
+- **Python** 3.9+ (3.10 recommended)
+- **macOS** (CoreML conversion requires macOS with Xcode Command Line Tools)
+- **GPU** (optional, for fine-tuning — NVIDIA with CUDA or Apple Silicon MPS)
+
+### Step 1: Create Virtual Environment
+
+```bash
+git clone https://github.com/crinex/Nimbo.git && cd Nimbo
+
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### Step 2: Install Dependencies
+
+```bash
+# Core (fine-tuning)
+pip install torch transformers datasets peft trl accelerate
+
+# CoreML conversion
+pip install coremltools safetensors numpy pyyaml tqdm scikit-learn
+
+# HuggingFace model download (optional)
+pip install huggingface_hub
+
+# Install Nimbo itself (editable mode)
+pip install -e .
+```
+
+Or install everything at once:
+
+```bash
+pip install -e ".[all]"
+pip install coremltools safetensors scikit-learn
+```
+
+### Step 3: Full Pipeline
+
+```python
+# 1. Fine-tune
+from nimbo import Nimbo
+
+trainer = Nimbo("meta-llama/Llama-3.2-1B-Instruct", dataset="your_data")
+trainer.train()
+trainer.save()  # Saves merged model to ./final_merged
+
+# 2. Convert to CoreML (split model, per-component quantization)
+from nimbo.export.coreml import convert_hf_to_coreml
+
+result = convert_hf_to_coreml(
+    'final_merged',
+    'coreml_models/output',
+    lut_bits=6,               # Decoder: 6-bit LUT
+    lut_embeddings_bits=-1,   # Embeddings: float16 (no quantization)
+    lut_lmhead_bits=6,        # LM Head: 6-bit LUT
+    split_model=True,
+    num_chunks=1,
+)
+
+# 3. Output: .mlpackage files + meta.yaml + tokenizer files
+```
+
+### Step 4: Compile & Deploy to iPhone
+
+```bash
+# Compile each .mlpackage to .mlmodelc
+xcrun coremlc compile coreml_models/output/model_embeddings.mlpackage coreml_models/output/
+xcrun coremlc compile coreml_models/output/model_FFN_PF_lut6.mlpackage coreml_models/output/
+xcrun coremlc compile coreml_models/output/model_lm_head_lut6.mlpackage coreml_models/output/
+
+# Transfer to iPhone via Xcode, Finder, or Files app
+```
+
+### Package Versions (Tested)
+
+| Package | Version |
+|---------|---------|
+| torch | 2.7+ |
+| transformers | 5.0+ |
+| coremltools | 8.2+ |
+| safetensors | 0.7+ |
+| peft | 0.18+ |
+| trl | 0.28+ |
+
+---
+
 ## 🎯 Supported Models
 
 ### Triton-Optimized Models (Accelerated Training)
