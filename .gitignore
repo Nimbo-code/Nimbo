@@ -95,3 +95,13 @@ config.local.json
 .env.local
 .omc.omc/
 tokens
+
+# macOS
+.DS_Store
+
+# Swift / Xcode
+.build/
+*.xcodeproj
+xcuserdata/
+DerivedData/
+*.xcworkspace/xcuserdata/

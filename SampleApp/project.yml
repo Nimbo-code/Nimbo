@@ -1,0 +1,45 @@
+name: NimboChat
+options:
+  bundleIdPrefix: com.nimbo
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+  developmentLanguage: en
+  defaultConfig: Debug
+
+settings:
+  base:
+    SWIFT_VERSION: "5"
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+
+packages:
+  NimboCore:
+    path: NimboCore
+
+targets:
+  NimboChat:
+    type: application
+    platform: iOS
+    sources:
+      - path: NimboChat
+        excludes:
+          - "Resources/**"
+    resources:
+      - path: NimboChat/Resources/Assets.xcassets
+    dependencies:
+      - package: NimboCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nimbo.chat
+        INFOPLIST_FILE: NimboChat/Info.plist
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+        TARGETED_DEVICE_FAMILY: 1
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        GENERATE_INFOPLIST_FILE: false
+    entitlements:
+      path: NimboChat/NimboChat.entitlements
