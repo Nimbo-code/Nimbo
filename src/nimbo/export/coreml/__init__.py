@@ -8,6 +8,7 @@ This module provides tools to convert HuggingFace LLaMA models to CoreML format
 optimized for Apple Neural Engine execution on iOS and macOS devices.
 
 Features:
+- Direct HuggingFace to CoreML conversion
 - LUT (Look-Up Table) quantization: 4-bit, 6-bit, 8-bit
 - Model splitting: embeddings, Decoder, lm_head separately or monolithic
 - KV cache management for efficient inference
@@ -15,11 +16,26 @@ Features:
 - Weight deduplication: 15-40% model size reduction for multi-function models
 - ANE compatibility checker: Analyze model layers for ANE optimization
 
+Quick Start:
+    from nimbo.export.coreml import convert_hf_to_coreml
+
+    # Convert HuggingFace model directly to CoreML
+    result = convert_hf_to_coreml(
+        model_id="meta-llama/Llama-3.2-1B",
+        output_dir="./coreml_output",
+        lut_bits=4,
+    )
+
 Classes:
     LlamaConverter: Main converter for LLaMA models to CoreML
     LlamaConfig: Configuration for ANE-optimized LLaMA model
     LlamaForCausalLM: ANE-optimized LLaMA model implementation
     BaseConverter: Abstract base class for all converters
+
+HuggingFace Conversion:
+    convert_hf_to_coreml: Convert HuggingFace model to CoreML in one call
+    convert_hf_to_nimbo: Convert HuggingFace to Nimbo format (intermediate step)
+    load_hf_model: Load HuggingFace model for manual conversion
 
 Deduplication:
     combine_models_with_dedup: Combine models with weight sharing (15-40% smaller)
@@ -73,6 +89,14 @@ from .ane_checker import (
     ANEIssueLevel,
     check_ane_compatibility,
 )
+from .hf_converter import (
+    convert_hf_to_coreml,
+    convert_hf_to_nimbo,
+    load_hf_model,
+    download_hf_model,
+    ConversionConfig,
+    ConversionResult,
+)
 
 __all__ = [
     # Converters
@@ -119,4 +143,11 @@ __all__ = [
     "ANEIssue",
     "ANEIssueLevel",
     "check_ane_compatibility",
+    # HuggingFace Converter
+    "convert_hf_to_coreml",
+    "convert_hf_to_nimbo",
+    "load_hf_model",
+    "download_hf_model",
+    "ConversionConfig",
+    "ConversionResult",
 ]
