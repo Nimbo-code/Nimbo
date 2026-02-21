@@ -1397,54 +1397,58 @@
         </div>
 
         <div class="code-panel active" id="tab-train">
-<pre><code><span class="ck">from</span> nimbo <span class="ck">import</span> NimboTrainer, TrainingConfig
+<pre><code><span class="ck">from</span> nimbo <span class="ck">import</span> Nimbo, LoRAConfig, TrainingConfig
 
-config <span class="co">=</span> TrainingConfig(
-    model_name<span class="co">=</span><span class="cs">"meta-llama/Llama-3.2-1B"</span>,
+<span class="cc"># Initialize trainer with model and dataset</span>
+trainer <span class="co">=</span> Nimbo(
+    base_model_name<span class="co">=</span><span class="cs">"meta-llama/Llama-3.2-1B"</span>,
     dataset<span class="co">=</span><span class="cs">"your_dataset.jsonl"</span>,
-    lora_r<span class="co">=</span><span class="cn">16</span>,
-    learning_rate<span class="co">=</span><span class="cn">2e-4</span>,
-    num_epochs<span class="co">=</span><span class="cn">3</span>,
-    use_triton_kernels<span class="co">=</span><span class="cn">True</span>,      <span class="cc"># 8x faster RMSNorm, SwiGLU, RoPE</span>
-    response_only<span class="co">=</span><span class="cn">True</span>,           <span class="cc"># Masked loss on completions</span>
+    lora_config<span class="co">=</span>LoRAConfig(r<span class="co">=</span><span class="cn">16</span>, lora_alpha<span class="co">=</span><span class="cn">32</span>),
+    training_config<span class="co">=</span>TrainingConfig(
+        learning_rate<span class="co">=</span><span class="cn">2e-4</span>,
+        num_train_epochs<span class="co">=</span><span class="cn">3</span>,
+        train_on_responses_only<span class="co">=</span><span class="cn">True</span>,  <span class="cc"># Masked loss on completions</span>
+    ),
+    use_triton_kernels<span class="co">=</span><span class="cn">True</span>,          <span class="cc"># 8x faster RMSNorm, SwiGLU, RoPE</span>
 )
 
-trainer <span class="co">=</span> NimboTrainer(config)
-trainer<span class="co">.</span><span class="cf">train</span>()</code></pre>
+trainer<span class="co">.</span><span class="cf">train</span>()
+trainer<span class="co">.</span><span class="cf">save</span>()   <span class="cc"># Merged model → ./nimbo_output/final_merged</span></code></pre>
         </div>
 
         <div class="code-panel" id="tab-export">
-<pre><code><span class="ck">from</span> nimbo.export <span class="ck">import</span> CoreMLExporter
+<pre><code><span class="ck">from</span> nimbo.export.coreml <span class="ck">import</span> convert_hf_to_coreml
 
-exporter <span class="co">=</span> CoreMLExporter(
-    model_path<span class="co">=</span><span class="cs">"./output/fine-tuned-model"</span>,
-    quantization<span class="co">=</span><span class="cs">"lut_4bit"</span>,        <span class="cc"># LUT quantization for ANE</span>
-    target<span class="co">=</span><span class="cs">"apple_neural_engine"</span>,
+<span class="cc"># Convert merged model to CoreML with LUT quantization</span>
+result <span class="co">=</span> convert_hf_to_coreml(
+    model_id<span class="co">=</span><span class="cs">"./nimbo_output/final_merged"</span>,
+    output_dir<span class="co">=</span><span class="cs">"./coreml_output"</span>,
+    lut_bits<span class="co">=</span><span class="cn">4</span>,                  <span class="cc"># 4-bit LUT quantization for ANE</span>
+    context_length<span class="co">=</span><span class="cn">512</span>,
+    split_model<span class="co">=</span><span class="cn">True</span>,             <span class="cc"># Split: embeddings, decoder, lm_head</span>
 )
 
-<span class="cc"># Export CoreML package optimized for on-device inference</span>
-exporter<span class="co">.</span><span class="cf">export</span>(<span class="cs">"./output/model.mlpackage"</span>)
-
-<span class="cc"># Validate the exported model</span>
-exporter<span class="co">.</span><span class="cf">validate</span>()</code></pre>
+<span class="cc"># Output: .mlpackage files + meta.yaml + tokenizer</span>
+<span class="cf">print</span>(result<span class="co">.</span>output_paths)</code></pre>
         </div>
 
         <div class="code-panel" id="tab-deploy">
 <pre><code><span class="ck">import</span> <span class="cl">NimboCore</span>
 
-<span class="cc">// Initialize the inference service</span>
-<span class="ck">let</span> service <span class="co">=</span> <span class="ck">try</span> <span class="cl">InferenceService</span>(
-    modelPath: modelURL,
-    config: .<span class="cf">default</span>
-)
+<span class="cc">// Load model from Files app or bundle</span>
+<span class="ck">let</span> manager <span class="co">=</span> <span class="cl">InferenceManager</span>()
+<span class="ck">try</span> <span class="ck">await</span> manager.<span class="cf">loadModel</span>(from: modelURL)
 
-<span class="cc">// Stream tokens from the model</span>
-<span class="ck">try</span> <span class="ck">await</span> service.<span class="cf">generate</span>(
+<span class="cc">// Generate with streaming tokens</span>
+<span class="ck">try</span> <span class="ck">await</span> manager.<span class="cf">generate</span>(
     prompt: <span class="cs">"Explain quantum computing"</span>,
-    maxTokens: <span class="cn">512</span>
+    maxTokens: <span class="cn">512</span>,
+    temperature: <span class="cn">0.7</span>
 ) { token <span class="ck">in</span>
     <span class="cf">print</span>(token, terminator: <span class="cs">""</span>)
-}</code></pre>
+}
+
+<span class="cc">// Runs on Apple Neural Engine — not CPU</span></code></pre>
         </div>
       </div>
     </div>
