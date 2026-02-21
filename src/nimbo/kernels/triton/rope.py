@@ -349,6 +349,7 @@ class NimboRoPE(torch.nn.Module):
     """RoPE module with Triton-accelerated rotation.
 
     Supports EXAONE-style Llama3 scaling.
+    Compatible with HuggingFace Transformers interface.
 
     Args:
         head_dim: Dimension of each attention head
@@ -377,6 +378,7 @@ class NimboRoPE(torch.nn.Module):
         self.base = base
         self.scaling_factor = scaling_factor
         self.rope_type = rope_type
+        self.dim = head_dim  # For Transformers compatibility
 
         # Precompute cache
         cos, sin = compute_rope_cache(
@@ -395,13 +397,57 @@ class NimboRoPE(torch.nn.Module):
         self.register_buffer("cos_cache", cos, persistent=False)
         self.register_buffer("sin_cache", sin, persistent=False)
 
+    @torch.no_grad()
     def forward(
+        self,
+        x: torch.Tensor,
+        position_ids: Optional[torch.Tensor] = None,
+        seq_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return cos and sin for the given positions.
+
+        Compatible with HuggingFace Transformers LlamaRotaryEmbedding interface.
+
+        Args:
+            x: Input tensor (used to determine device/dtype and seq_len)
+            position_ids: Optional position indices
+            seq_len: Optional sequence length (deprecated, use position_ids)
+
+        Returns:
+            Tuple of (cos, sin) tensors for use with apply_rotary_pos_emb
+        """
+        # Determine sequence length
+        if seq_len is None:
+            if position_ids is not None:
+                seq_len = position_ids.max().item() + 1
+            else:
+                seq_len = x.shape[1] if x.dim() > 1 else x.shape[0]
+
+        # Get cos and sin from cache
+        if position_ids is not None:
+            # Handle batched position_ids
+            cos = self.cos_cache[position_ids].to(x.dtype)
+            sin = self.sin_cache[position_ids].to(x.dtype)
+        else:
+            cos = self.cos_cache[:seq_len].to(x.dtype)
+            sin = self.sin_cache[:seq_len].to(x.dtype)
+
+        # Expand to full head_dim by repeating (Transformers expects full dim)
+        # cos_cache is (seq_len, head_dim//2), need (seq_len, head_dim)
+        cos = torch.cat([cos, cos], dim=-1)
+        sin = torch.cat([sin, sin], dim=-1)
+
+        return cos, sin
+
+    def apply_rotary(
         self,
         q: torch.Tensor,
         k: torch.Tensor,
         position_ids: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Apply RoPE to Q and K.
+        """Apply RoPE to Q and K using Triton kernel.
+
+        This is the accelerated version for direct use.
 
         Args:
             q: Query tensor (batch, seq_len, num_heads, head_dim)
@@ -436,27 +482,32 @@ def apply_rotary_pos_emb(
     Compatible with HuggingFace transformers interface.
 
     Args:
-        q: Query tensor
+        q: Query tensor of shape (batch, seq, heads, dim) or (batch, heads, seq, dim)
         k: Key tensor
-        cos: Cosine values
-        sin: Sine values
-        position_ids: Optional position indices
-        unsqueeze_dim: Dimension to unsqueeze cos/sin
+        cos: Cosine values - already position-indexed from rotary_emb forward
+        sin: Sine values - already position-indexed from rotary_emb forward
+        position_ids: Optional position indices (unused, kept for API compatibility)
+        unsqueeze_dim: Dimension to unsqueeze cos/sin for broadcasting
 
     Returns:
         Tuple of (q_embed, k_embed)
     """
-    # Reshape cos/sin to match expected dimensions
-    if position_ids is not None:
-        cos = cos[position_ids]
-        sin = sin[position_ids]
+    # cos/sin come from NimboRoPE.forward() which already handles position_ids
+    # Shape is typically (batch, seq, dim) or (seq, dim)
+    # We need to add a dimension for heads to broadcast correctly
 
-    # Expand dims for broadcasting
-    cos = cos.unsqueeze(unsqueeze_dim)
-    sin = sin.unsqueeze(unsqueeze_dim)
+    # Handle different input shapes
+    if cos.dim() == 2:
+        # (seq, dim) -> add batch and heads dims
+        cos = cos.unsqueeze(0).unsqueeze(unsqueeze_dim)
+        sin = sin.unsqueeze(0).unsqueeze(unsqueeze_dim)
+    elif cos.dim() == 3:
+        # (batch, seq, dim) -> add heads dim
+        cos = cos.unsqueeze(unsqueeze_dim)
+        sin = sin.unsqueeze(unsqueeze_dim)
+    # else: assume already has correct shape
 
-    # Apply rotation
-    # Standard HuggingFace pattern
+    # Apply rotation using the standard HuggingFace pattern
     q_embed = (q * cos) + (rotate_half(q) * sin)
     k_embed = (k * cos) + (rotate_half(k) * sin)
 

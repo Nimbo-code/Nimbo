@@ -24,16 +24,27 @@ Example usage:
     converter.convert(output_dir="./output")
 """
 
-from .coreml import (
-    LlamaConverter,
-    LlamaConfig,
-    LlamaForCausalLM,
-    BaseConverter,
-)
+# CoreML is only available on macOS
+# Make it optional for Linux/Windows users
+try:
+    from .coreml import (
+        LlamaConverter,
+        LlamaConfig,
+        LlamaForCausalLM,
+        BaseConverter,
+    )
+    COREML_AVAILABLE = True
+except ImportError:
+    COREML_AVAILABLE = False
+    LlamaConverter = None
+    LlamaConfig = None
+    LlamaForCausalLM = None
+    BaseConverter = None
 
 __all__ = [
     "LlamaConverter",
     "LlamaConfig",
     "LlamaForCausalLM",
     "BaseConverter",
+    "COREML_AVAILABLE",
 ]

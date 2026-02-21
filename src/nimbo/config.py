@@ -201,7 +201,7 @@ class TrainingConfig:
             "fp16_full_eval": self.fp16_full_eval,
             "bf16_full_eval": self.bf16_full_eval,
             "gradient_checkpointing": self.gradient_checkpointing,
-            "max_seq_length": self.max_length,
+            "max_length": self.max_length,
             "logging_steps": self.logging_steps,
             "logging_first_step": self.logging_first_step,
             "eval_strategy": self.eval_strategy,

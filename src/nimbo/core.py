@@ -49,19 +49,34 @@ class Nimbo:
     """
 
     # Auto-detected target modules for common model architectures
+    # Includes both Attention and MLP layers for comprehensive fine-tuning
     TARGET_MODULE_MAP: Dict[str, List[str]] = {
-        "exaone": ["q_proj", "k_proj", "v_proj", "o_proj"],  # EXAONE 3.5, 4.0
-        "llama": ["q_proj", "k_proj", "v_proj", "o_proj"],
-        "mistral": ["q_proj", "k_proj", "v_proj", "o_proj"],
-        "phi": ["q_proj", "k_proj", "v_proj", "dense"],
-        "gpt2": ["c_attn", "c_proj"],
-        "gpt_neox": ["query_key_value", "dense"],
-        "falcon": ["query_key_value", "dense"],
-        "bloom": ["query_key_value", "dense"],
-        "opt": ["q_proj", "k_proj", "v_proj", "out_proj"],
-        "qwen": ["c_attn", "c_proj"],
-        "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj"],
-        "gemma": ["q_proj", "k_proj", "v_proj", "o_proj"],
+        # EXAONE 3.5, 4.0 - Attention + MLP
+        "exaone": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        # LLaMA family - Attention + MLP
+        "llama": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        # Mistral - Attention + MLP
+        "mistral": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        # Phi - Attention + MLP (uses dense for attention, fc1/fc2 for MLP)
+        "phi": ["q_proj", "k_proj", "v_proj", "dense", "fc1", "fc2"],
+        # GPT-2 - Attention + MLP
+        "gpt2": ["c_attn", "c_proj", "c_fc"],
+        # GPT-NeoX - Attention + MLP
+        "gpt_neox": ["query_key_value", "dense", "dense_h_to_4h", "dense_4h_to_h"],
+        # Falcon - Attention + MLP
+        "falcon": ["query_key_value", "dense", "dense_h_to_4h", "dense_4h_to_h"],
+        # BLOOM - Attention + MLP
+        "bloom": ["query_key_value", "dense", "dense_h_to_4h", "dense_4h_to_h"],
+        # OPT - Attention + MLP
+        "opt": ["q_proj", "k_proj", "v_proj", "out_proj", "fc1", "fc2"],
+        # Qwen - Attention + MLP
+        "qwen": ["c_attn", "c_proj", "w1", "w2"],
+        # Qwen2 - Attention + MLP
+        "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        # Gemma - Attention + MLP
+        "gemma": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        # Gemma2 - Attention + MLP
+        "gemma2": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     }
 
     def __init__(
