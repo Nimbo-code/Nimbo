@@ -1,0 +1,83 @@
+device:
+  device: cuda
+  device_map: null
+inference:
+  do_sample: true
+  max_new_tokens: 256
+  num_beams: 1
+  num_return_sequences: 1
+  repetition_penalty: 1.1
+  stream: false
+  temperature: 0.7
+  top_k: 50
+  top_p: 0.9
+  use_cache: true
+kernels:
+  patch_attention: false
+  patch_rms_norm: true
+  patch_rope: true
+  patch_swiglu: true
+  use_flash_attention: true
+  use_triton_kernels: true
+lora:
+  bias: none
+  extra_kwargs: {}
+  init_lora_weights: true
+  lora_alpha: 32
+  lora_dropout: 0.05
+  modules_to_save: null
+  r: 16
+  target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+  task_type: CAUSAL_LM
+  use_dora: false
+  use_rslora: false
+quantization:
+  bnb_4bit_compute_dtype: float16
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  load_in_4bit: false
+  load_in_8bit: false
+training:
+  bf16: true
+  bf16_full_eval: false
+  dataloader_num_workers: 0
+  dataloader_pin_memory: true
+  early_stopping_patience: 3
+  early_stopping_threshold: 0.0
+  eval_steps: 100
+  eval_strategy: steps
+  extra_kwargs: {}
+  fp16: false
+  fp16_full_eval: false
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
+  greater_is_better: false
+  learning_rate: 0.0002
+  load_best_model_at_end: true
+  logging_first_step: true
+  logging_steps: 10
+  lr_scheduler_type: cosine
+  max_grad_norm: 1.0
+  max_length: 512
+  max_steps: -1
+  metric_for_best_model: eval_loss
+  num_train_epochs: 5
+  optim: adamw_torch
+  output_dir: /home/elicer/jyp/Nimbo-github/examples/instruction_finetuning/output_large
+  per_device_eval_batch_size: 1
+  per_device_train_batch_size: 4
+  save_steps: 200
+  save_strategy: steps
+  save_total_limit: 3
+  seed: 42
+  train_on_responses_only: false
+  warmup_ratio: 0.1
+  warmup_steps: 0
+  weight_decay: 0.01
