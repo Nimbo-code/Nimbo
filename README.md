@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/nimbo_main_logo.png" alt="Nimbo Logo" width="300"/>
+  <img src="assets/nimbo_logo2.png" alt="Nimbo Logo" width="300"/>
 </p>
 
 <h3 align="center">
