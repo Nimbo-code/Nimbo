@@ -88,11 +88,14 @@ coreml_model.save("model.mlpackage")
 
 ### Step 3: Deploy with Sample Apps
 
+Ready-to-use iOS sample application included:
+
 ```bash
-# Coming soon: Ready-to-use sample applications
-nimbo deploy --format ios --model ./output/model.mlmodel
-nimbo deploy --format onnx --model ./output/model.onnx
+# Open the sample app in Xcode
+open SampleApp/NimboChat
 ```
+
+📱 **[NimboChat](SampleApp/)** — SwiftUI chat app with CoreML inference on Apple Neural Engine
 
 ---
 
@@ -475,8 +478,8 @@ for token in model.stream("Once upon a time"):
 - [x] EXAONE 4.0 optimization
 - [x] LLaMA 3.2 (1B, 3B) Triton optimization
 - [x] CoreML export for iOS/macOS (ANE optimized, LUT quantization)
+- [x] Sample iOS app (SwiftUI) — [NimboChat](SampleApp/)
 - [ ] ONNX export with quantization
-- [ ] Sample iOS app (SwiftUI)
 - [ ] ONNX Runtime sample app
 
 ---
