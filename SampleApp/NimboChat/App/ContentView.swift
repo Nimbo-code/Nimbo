@@ -23,8 +23,8 @@ struct ContentView: View {
                     .environment(chatVM)
                     .environment(modelManager)
             }
-            .overlay(alignment: .top) {
-                overlayControls
+            .safeAreaInset(edge: .top) {
+                topNavigationBar
             }
         }
         .sheet(isPresented: $showingConversationSheet) {
@@ -66,55 +66,67 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Floating Controls
+    // MARK: - Top Navigation Bar
 
-    private var overlayControls: some View {
+    private var topNavigationBar: some View {
         HStack {
+            // Left: hamburger menu → conversation list
+            Button {
+                showingConversationSheet = true
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+            }
+
             Spacer()
-            HStack(spacing: 10) {
-                Button {
-                    chatVM.newConversation()
-                } label: {
-                    Image(systemName: "plus")
-                }
 
-                Button {
-                    showingConversationSheet = true
-                } label: {
-                    Image(systemName: "list.bullet")
-                }
+            // Center: title + model name
+            VStack(spacing: 2) {
+                Text(chatVM.currentConversation?.title ?? "New Chat")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
 
-                Button {
-                    showingModelSheet = true
-                } label: {
-                    ZStack(alignment: .bottomTrailing) {
-                        Image(systemName: "cpu")
-                        Circle()
-                            .fill(modelStatusColor)
-                            .frame(width: 6, height: 6)
-                            .offset(x: 3, y: 3)
+                if let modelName = modelManager.loadedModelName {
+                    Text(modelName)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else if modelManager.isLoadingModel {
+                    Text("Loading model...")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Button {
+                        showingModelSheet = true
+                    } label: {
+                        Text("No model selected")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.21))
                     }
                 }
-
-                Button {
-                    showingSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                }
             }
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+
+            Spacer()
+
+            // Right: settings gear
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+            }
         }
-        .padding(.top, 8)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color(.systemBackground))
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
     }
 
     private var modelStatusColor: Color {

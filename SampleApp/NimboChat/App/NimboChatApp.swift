@@ -22,7 +22,7 @@ struct NimboChatApp: App {
             ContentView()
                 .environment(chatViewModel)
                 .environment(modelManager)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }
     }
 }

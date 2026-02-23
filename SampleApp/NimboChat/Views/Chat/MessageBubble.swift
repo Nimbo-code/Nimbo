@@ -8,6 +8,10 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Orange Theme Color
+
+private let primaryOrange = Color(red: 1.0, green: 0.42, blue: 0.21)
+
 struct MessageBubble: View, Equatable {
     let message: ChatMessage
 
@@ -18,30 +22,53 @@ struct MessageBubble: View, Equatable {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            messageContent
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showCopyButton.toggle()
-                    }
-                }
+        VStack(alignment: isUser ? .trailing : .leading, spacing: 6) {
+            if isUser {
+                userMessageContent
+            } else {
+                assistantMessageContent
+            }
 
             // Stats (for assistant messages)
             if !isUser && message.isComplete {
                 statsView
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
     }
 
-    // MARK: - Message Content
+    // MARK: - User Message (orange bubble, right-aligned)
 
-    private var messageContent: some View {
-        HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(isUser ? Color.accentColor.opacity(0.9) : llmAccent)
-                .frame(width: 3)
+    private var userMessageContent: some View {
+        HStack {
+            Spacer(minLength: 60)
 
+            HStack(alignment: .top, spacing: 4) {
+                if !message.content.isEmpty {
+                    copyButton
+                        .opacity(showCopyButton ? 1 : 0)
+                }
+
+                Text(message.content)
+                    .foregroundStyle(.white)
+                    .textSelection(.enabled)
+                    .lineSpacing(3)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(primaryOrange, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
+        }
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCopyButton.toggle()
+            }
+        }
+    }
+
+    // MARK: - Assistant Message (light gray bubble, left-aligned)
+
+    private var assistantMessageContent: some View {
+        HStack {
             HStack(alignment: .top, spacing: 4) {
                 VStack(alignment: .leading, spacing: 8) {
                     if message.content.isEmpty && !message.isComplete {
@@ -49,6 +76,7 @@ struct MessageBubble: View, Equatable {
                             .controlSize(.small)
                     } else {
                         Text(message.content)
+                            .foregroundStyle(.primary)
                             .textSelection(.enabled)
                             .lineSpacing(3)
                     }
@@ -59,10 +87,17 @@ struct MessageBubble: View, Equatable {
                         .opacity(showCopyButton ? 1 : 0)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            Spacer(minLength: 60)
         }
-        .padding(.vertical, 6)
-        .foregroundStyle(.primary)
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCopyButton.toggle()
+            }
+        }
     }
 
     // MARK: - Copy Button
@@ -77,8 +112,9 @@ struct MessageBubble: View, Equatable {
         } label: {
             Image(systemName: "doc.on.doc")
                 .font(.caption)
+                .foregroundStyle(.secondary)
                 .padding(5)
-                .background(.ultraThinMaterial, in: Circle())
+                .background(Color(.systemGray6), in: Circle())
         }
         .buttonStyle(.plain)
     }
@@ -87,8 +123,6 @@ struct MessageBubble: View, Equatable {
         lhs.message == rhs.message
     }
 }
-
-private let llmAccent = Color(red: 1.0, green: 0.62, blue: 0.2)
 
 // MARK: - Stats View
 

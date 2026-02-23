@@ -56,6 +56,7 @@ struct ChatView: View {
                         Label("Select Model", systemImage: "folder")
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 1.0, green: 0.42, blue: 0.21))
                     .controlSize(.large)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -65,11 +66,7 @@ struct ChatView: View {
             // Loading overlay
             if let progress = modelManager.loadingProgress, modelManager.isLoadingModel {
                 ZStack {
-                    Color.black.opacity(0.5)
-                        .ignoresSafeArea()
-                    Rectangle()
-                        .fill(.thickMaterial)
-                        .opacity(0.9)
+                    Color(.systemBackground).opacity(0.85)
                         .ignoresSafeArea()
 
                     ModelLoadingGauge(progress: progress, modelName: modelManager.loadingModelName)
@@ -131,7 +128,7 @@ struct ChatView: View {
                         .id("bottom")
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 60) // Space for floating controls
+                .padding(.top, 12)
             }
             .onAppear {
                 scrollProxy = proxy
@@ -142,7 +139,7 @@ struct ChatView: View {
                 }
             }
         }
-        .background(chatBackground)
+        .background(Color(.systemBackground))
     }
 
     private func scrollToBottom() {
@@ -166,30 +163,31 @@ struct StreamingMessageView: View {
     @State private var cursorVisible = true
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(gaugeAccent)
-                .frame(width: 3)
-
+        HStack {
             VStack(alignment: .leading, spacing: 0) {
                 if content.isEmpty {
                     thinkingDots
                 } else {
                     HStack(alignment: .bottom, spacing: 0) {
                         Text(content)
+                            .foregroundStyle(.primary)
                             .textSelection(.enabled)
                             .lineSpacing(3)
 
                         Text("|")
                             .fontWeight(.light)
+                            .foregroundStyle(gaugeAccent)
                             .opacity(cursorVisible ? 1 : 0)
                             .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: cursorVisible)
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            Spacer(minLength: 60)
         }
-        .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             cursorVisible = true
@@ -238,12 +236,12 @@ struct ModelLoadingGauge: View {
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.black.opacity(0.35))
+                            .fill(Color(.systemGray5))
 
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(
                                 LinearGradient(
-                                    colors: [gaugeAccent.opacity(0.5), gaugeAccent, Color.white.opacity(0.9)],
+                                    colors: [gaugeAccent.opacity(0.6), gaugeAccent],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -257,7 +255,7 @@ struct ModelLoadingGauge: View {
                     Text("Loading...")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(gaugeAccent.opacity(0.85))
+                        .foregroundStyle(gaugeAccent)
                         .textCase(.uppercase)
 
                     Text("\(Int(clampedProgress * 100))%")
@@ -277,19 +275,11 @@ struct ModelLoadingGauge: View {
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 18)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
     }
 }
 
 // MARK: - Platform Colors
 
-private let chatBackground = LinearGradient(
-    colors: [
-        Color(red: 0.06, green: 0.07, blue: 0.08),
-        Color(red: 0.03, green: 0.03, blue: 0.04)
-    ],
-    startPoint: .topLeading,
-    endPoint: .bottomTrailing
-)
-
-let gaugeAccent = Color(red: 1.0, green: 0.62, blue: 0.2)
+let gaugeAccent = Color(red: 1.0, green: 0.42, blue: 0.21)

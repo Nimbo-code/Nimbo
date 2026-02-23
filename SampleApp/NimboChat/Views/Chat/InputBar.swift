@@ -7,6 +7,12 @@
 
 import SwiftUI
 
+// MARK: - Theme Constants
+
+private let inputBarBackground = Color(.systemGray6)
+private let inputFieldBackground = Color(.systemBackground)
+private let sendButtonOrange = Color(red: 1.0, green: 0.42, blue: 0.21)
+
 struct InputBar: View {
     @Environment(ChatViewModel.self) private var chatVM
     @Environment(ModelManagerViewModel.self) private var modelManager
@@ -28,12 +34,7 @@ struct InputBar: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.2), radius: 12, y: 6)
+            .background(inputBarBackground, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
 
             // Toast overlay
             if showLoadingToast {
@@ -61,6 +62,7 @@ struct InputBar: View {
 
         return TextField("Message...", text: $vm.inputText, axis: .vertical)
             .textFieldStyle(.plain)
+            .foregroundStyle(.primary)
             .lineLimit(1...6)
             .focused($isFocused)
             .disabled(chatVM.isGenerating)
@@ -68,15 +70,12 @@ struct InputBar: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.08))
+                    .fill(inputFieldBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    .stroke(Color(.systemGray4), lineWidth: 0.5)
             )
-            .onSubmit {
-                sendMessage()
-            }
     }
 
     // MARK: - Send Button
@@ -94,16 +93,21 @@ struct InputBar: View {
                 ZStack {
                     Circle()
                         .fill(Color.red.opacity(0.3))
-                        .frame(width: 30, height: 30)
+                        .frame(width: 32, height: 32)
                     RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(Color.primary)
+                        .fill(Color.red)
                         .frame(width: 10, height: 10)
                 }
             } else {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 27))
-                    .foregroundStyle(canSend ? Color.accentColor : Color.secondary.opacity(0.5))
-                    .frame(width: 30, height: 30)
+                // Send button - orange circle with arrow
+                ZStack {
+                    Circle()
+                        .fill(canSend ? sendButtonOrange : Color.gray.opacity(0.3))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                }
             }
         }
         .buttonStyle(.plain)
@@ -178,10 +182,11 @@ private struct LoadingToastView: View {
             Text(message)
                 .font(.subheadline)
                 .fontWeight(.medium)
+                .foregroundStyle(.primary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+        .background(Color(.systemGray6), in: Capsule())
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
     }
 }

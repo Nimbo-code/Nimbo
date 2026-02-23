@@ -33,6 +33,9 @@ final class ModelManagerViewModel {
     /// Name of model being loaded (for display)
     var loadingModelName: String?
 
+    /// Display name of the currently loaded model
+    var loadedModelName: String?
+
     /// Error message
     var errorMessage: String?
 
@@ -132,6 +135,7 @@ final class ModelManagerViewModel {
             }
 
             loadedModelId = model.id
+            loadedModelName = model.displayName
             loadingProgress = nil
 
             // Remember last model
@@ -155,6 +159,7 @@ final class ModelManagerViewModel {
     func unloadModel() async {
         await inferenceService.unloadModel()
         loadedModelId = nil
+        loadedModelName = nil
         loadingProgress = nil
         logInfo("Model unloaded", category: .model)
     }

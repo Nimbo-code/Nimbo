@@ -70,7 +70,7 @@ struct ToastView: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(UIColor.secondarySystemBackground))
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
         )
         .padding(.horizontal)
     }
