@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/crinex/Nimbo/blob/main/LICENSE">
+  <a href="https://github.com/Nimbo-code/Nimbo/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"/>
   </a>
   <a href="https://www.python.org/downloads/">
@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://crinex.github.io/Nimbo/"><b>🌐 Homepage</b></a> ·
+  <a href="https://Nimbo-code.github.io/Nimbo/"><b>🌐 Homepage</b></a> ·
   <a href="#-installation"><b>Installation</b></a> ·
   <a href="#-examples"><b>Examples</b></a> ·
   <a href="SampleApp/"><b>Sample App</b></a>
@@ -163,13 +163,13 @@ patch_model(model)  # 181 layers optimized automatically
 
 ```bash
 # Lightweight install
-pip install git+https://github.com/crinex/Nimbo.git
+pip install git+https://github.com/Nimbo-code/Nimbo.git
 
 # With all export formats
-pip install "nimbo[export] @ git+https://github.com/crinex/Nimbo.git"
+pip install "nimbo[export] @ git+https://github.com/Nimbo-code/Nimbo.git"
 
 # Development
-git clone https://github.com/crinex/Nimbo.git && cd Nimbo
+git clone https://github.com/Nimbo-code/Nimbo.git && cd Nimbo
 pip install -e ".[dev]"
 ```
 
@@ -188,7 +188,7 @@ Complete guide for running the full pipeline: **Fine-tune → Merge → CoreML C
 ### Step 1: Create Virtual Environment
 
 ```bash
-git clone https://github.com/crinex/Nimbo.git && cd Nimbo
+git clone https://github.com/Nimbo-code/Nimbo.git && cd Nimbo
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -533,7 +533,7 @@ for token in model.stream("Once upon a time"):
 ## 🛠️ Development
 
 ```bash
-git clone https://github.com/crinex/Nimbo.git
+git clone https://github.com/Nimbo-code/Nimbo.git
 cd Nimbo
 pip install -e ".[dev]"
 
