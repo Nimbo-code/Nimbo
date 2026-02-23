@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://Nimbo-code.github.io/Nimbo/"><b>🌐 Homepage</b></a> ·
+  <a href="https://Nimbo-code.github.io/"><b>🌐 Homepage</b></a> ·
   <a href="#-installation"><b>Installation</b></a> ·
   <a href="#-examples"><b>Examples</b></a> ·
   <a href="SampleApp/"><b>Sample App</b></a>
