@@ -12,7 +12,7 @@ Nimbo is a comprehensive rewrite of SmoLoRA with all Priority 1-4 improvements:
 - On-device export: CoreML (Apple Neural Engine), ONNX (cross-platform)
 """
 
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 
 from .callbacks import (
     CheckpointCallback,

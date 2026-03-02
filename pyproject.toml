@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nimbo"
+name = "nimbo-code"
 version = "0.1.0"
 description = "A modern, feature-rich Python framework for fine-tuning language models with LoRA adapters."
 readme = "README.md"
@@ -86,9 +86,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/username/nimbo"
-"Bug Reports" = "https://github.com/username/nimbo/issues"
-"Source" = "https://github.com/username/nimbo"
+"Homepage" = "https://github.com/Nimbo-code/Nimbo"
+"Bug Reports" = "https://github.com/Nimbo-code/Nimbo/issues"
+"Source" = "https://github.com/Nimbo-code/Nimbo"
 
 [tool.setuptools.packages.find]
 where = ["src"]
